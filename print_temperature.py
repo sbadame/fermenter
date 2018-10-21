@@ -31,7 +31,7 @@ def main(thermostat_files, poll_every_n_seconds, thermostat_names):
       name = fname
       if fname in thermostat_names:
         name = thermostat_names[fname]
-      print(parse_therm(name, fcontents, time.time()))
+      print(parse_therm(name, fcontents, time.time()), flush=True)
     try:
       time.sleep(poll_every_n_seconds)
     except KeyboardInterrupt:

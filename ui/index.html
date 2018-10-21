@@ -1,0 +1,54 @@
+<html>
+  <head>
+    <script type="text/javascript" src="data.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+"use strict";
+
+// https://developers.google.com/chart/interactive/docs/gallery/linechart
+google.charts.load('current', {packages: ['corechart', 'line']});
+google.charts.setOnLoadCallback(drawCurveTypes);
+
+function drawCurveTypes() {
+  var data = new google.visualization.DataTable();
+  data.addColumn('datetime', 'Time');
+  for (var col of columns) {
+    data.addColumn('number', col);
+  }
+  for (var log of logs) {
+    // Time is logged as seconds since epoch,
+    // but new Date() wants milliseconds.
+    var timestamp = new Date(log[0] * 1000);
+    var temperature = log[4];
+    if (log[1] == columns[0]) {
+      data.addRow([timestamp, log[4], null, null]);
+    } else if (log[1] == columns[1]) {
+      data.addRow([timestamp, null, log[4], null]);
+    } else if (log[1] == columns[2]) {
+      data.addRow([timestamp, null, null, log[4]]);
+    } else {
+      console.log(log);
+    }
+  }
+
+  var options = {
+    hAxis: {
+      title: 'Time'
+    },
+    vAxis: {
+      title: 'Temperature \u2109'
+    },
+    series: {
+      1: {curveType: 'function'}
+    }
+  };
+
+  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+  chart.draw(data, options);
+} 
+    </script>
+  </head>
+  <body>
+    <div id="chart_div"></div>
+  </body>
+</html>
