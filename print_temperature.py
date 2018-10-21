@@ -12,7 +12,7 @@ def parse_therm(name, content, seconds_since_epoch):
   lines = content.splitlines()
 
   if 'YES' not in lines[0]:
-    return ','.join([str_time, 'ERROR', 0, 0])
+    return ','.join([str_time, name, 'ERROR', '0', '0'])
 
   _, temp = lines[1].split('t=')
   celsius = int(temp)/1000.0
