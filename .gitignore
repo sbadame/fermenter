@@ -1,3 +1,5 @@
 *.swp
 data/*
 env/*
+ui/data.js
+ui/log.csv
