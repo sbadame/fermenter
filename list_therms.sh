@@ -8,5 +8,4 @@
 # Each one will have the unique serial number so you may want to plug one in at
 # a time, look at what file is created, and label the sensor!
 
-dev=$(ls /sys/bus/w1/devices | grep '^28-')
-echo "/sys/bus/w1/devices/$dev/w1_slave"
+ls -l /sys/bus/w1/devices/28-*/w1_slave
