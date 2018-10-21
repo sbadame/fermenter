@@ -1,51 +1,84 @@
 <html>
   <head>
-    <script type="text/javascript" src="data.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.5.5/firebase-firestore.js"></script>
+    <script>
+      // Initialize Firebase
+      var config = {
+        apiKey: "AIzaSyD7CFADGoS9hi_gnJofB-IqygN8050jtW0",
+        authDomain: "fermenter-220118.firebaseapp.com",
+        databaseURL: "https://fermenter-220118.firebaseio.com",
+        projectId: "fermenter-220118",
+        storageBucket: "fermenter-220118.appspot.com",
+        messagingSenderId: "90102997315"
+      };
+      firebase.initializeApp(config);
+      var fs = firebase.firestore();
+      fs.settings({timestampsInSnapshots: true});
+      var fireLogs = [];
+      fs.collection("logentries").orderBy('timestamp').get().then((querySnapshot) => {
+        querySnapshot.forEach((doc) => {
+          var data = doc.data();
+          var f = (data.temperature_celsius * (9.0/5.0)) + 32;
+          fireLogs.push([data.timestamp.seconds, data.thermometer_name, data.status, f]);
+        });
+        drawData(fireLogs);
+      });
+    </script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
 "use strict";
 
-// https://developers.google.com/chart/interactive/docs/gallery/linechart
-google.charts.load('current', {packages: ['corechart', 'line']});
-google.charts.setOnLoadCallback(drawCurveTypes);
-
-function drawCurveTypes() {
-  var data = new google.visualization.DataTable();
-  data.addColumn('datetime', 'Time');
-  for (var col of columns) {
-    data.addColumn('number', col);
-  }
-  for (var log of logs) {
-    // Time is logged as seconds since epoch,
-    // but new Date() wants milliseconds.
-    var timestamp = new Date(log[0] * 1000);
-    var temperature = log[4];
-    if (log[1] == columns[0]) {
-      data.addRow([timestamp, log[4], null, null]);
-    } else if (log[1] == columns[1]) {
-      data.addRow([timestamp, null, log[4], null]);
-    } else if (log[1] == columns[2]) {
-      data.addRow([timestamp, null, null, log[4]]);
-    } else {
-      console.log(log);
+function drawData(logs) {
+  var OK = 'OK';
+  var ERROR = 'ERROR';
+  var blue = 'In water';
+  var white = 'Garage';
+  var yellow = 'In fridge';
+  var columns = ['In water','Garage','In fridge'];
+  // https://developers.google.com/chart/interactive/docs/gallery/linechart
+  google.charts.load('current', {packages: ['corechart', 'line']});
+  google.charts.setOnLoadCallback(drawCurveTypes);
+  
+  function drawCurveTypes() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('datetime', 'Time');
+    for (var col of columns) {
+      data.addColumn('number', col);
     }
-  }
-
-  var options = {
-    hAxis: {
-      title: 'Time'
-    },
-    vAxis: {
-      title: 'Temperature \u2109'
-    },
-    series: {
-      1: {curveType: 'function'}
+    for (var log of logs) {
+      // Time is logged as seconds since epoch,
+      // but new Date() wants milliseconds.
+      var timestamp = new Date(log[0] * 1000);
+      var name = log[1]
+      var temperature_f = log[3];
+      if (name == columns[0]) {
+        data.addRow([timestamp, temperature_f, null, null]);
+      } else if (name == columns[1]) {
+        data.addRow([timestamp, null, temperature_f, null]);
+      } else if (name == columns[2]) {
+        data.addRow([timestamp, null, null, temperature_f]);
+      } else {
+        console.log(log);
+      }
     }
-  };
-
-  var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-  chart.draw(data, options);
-} 
+  
+    var options = {
+      hAxis: {
+        title: 'Time'
+      },
+      vAxis: {
+        title: 'Temperature \u2109'
+      },
+      series: {
+        1: {curveType: 'function'}
+      }
+    };
+  
+    var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
+    chart.draw(data, options);
+  } 
+}
     </script>
   </head>
   <body>
