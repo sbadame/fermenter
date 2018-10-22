@@ -3,3 +3,5 @@ data/*
 env/*
 ui/data.js
 ui/log.csv
+.firebase/*
+.firebaserc
