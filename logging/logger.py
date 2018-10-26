@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 import glob
 import sys
 import time
@@ -20,7 +18,7 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.3f' % celsius, '%2.3f' % to_f(celsius)])
 
 
-def main(thermostat_files, poll_every_n_seconds, thermostat_names):
+def main(thermostat_files, poll_every_n_seconds, thermostat_names, temperature_log):
   while True:
     try:
       contents = [
@@ -31,7 +29,7 @@ def main(thermostat_files, poll_every_n_seconds, thermostat_names):
       name = fname
       if fname in thermostat_names:
         name = thermostat_names[fname]
-      print(parse_therm(name, fcontents, time.time()), flush=True)
+      print(parse_therm(name, fcontents, time.time()), file=temperature_log, flush=True)
     try:
       time.sleep(poll_every_n_seconds)
     except KeyboardInterrupt:
@@ -39,10 +37,12 @@ def main(thermostat_files, poll_every_n_seconds, thermostat_names):
 
 
 if __name__ == "__main__":
-  if len(sys.argv) < 2:
-    files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
+  files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
+
+  if len(sys.argv) > 1:
+    out = open(sys.argv[1], 'a')
   else:
-    files = sys.argv[1:]
+    out = sys.stdout
 
   try:
     config = json.loads(open('data/config.json', 'r').read())
@@ -51,6 +51,8 @@ if __name__ == "__main__":
 
   if 'poll_every_n_seconds' not in config:
     config['poll_every_n_seconds'] = 30
+
+  config['temperature_log'] = out
 
   print(files, config)
   main(files, **config)
