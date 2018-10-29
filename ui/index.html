@@ -1,5 +1,6 @@
 <html>
   <head>
+    <script src="https://rawgit.com/nodeca/pako/master/dist/pako.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.5/firebase-firestore.js"></script>
     <script>
@@ -14,15 +15,12 @@
       };
       firebase.initializeApp(config);
       var fs = firebase.firestore();
+      var result = null;
       fs.settings({timestampsInSnapshots: true});
-      var fireLogs = [];
-      fs.collection("logentries").orderBy('timestamp').get().then((querySnapshot) => {
-        querySnapshot.forEach((doc) => {
-          var data = doc.data();
-          var f = (data.temperature_celsius * (9.0/5.0)) + 32;
-          fireLogs.push([data.timestamp.seconds, data.thermometer_name, data.status, f]);
-        });
-        drawData(fireLogs);
+      fs.collection('ui').doc('data').get().then((doc) => {
+	 gzipped_result = doc.data().gzipped;
+	 json_result = JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
+	 drawData(json_result);
       });
     </script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -46,6 +44,7 @@ function drawData(logs) {
     for (var col of columns) {
       data.addColumn('number', col);
     }
+    var parsedData = [];
     for (var log of logs) {
       // Time is logged as seconds since epoch,
       // but new Date() wants milliseconds.
@@ -53,15 +52,16 @@ function drawData(logs) {
       var name = log[1]
       var temperature_f = log[3];
       if (name == columns[0]) {
-        data.addRow([timestamp, temperature_f, null, null]);
+        parsedData.push([timestamp, temperature_f, null, null]);
       } else if (name == columns[1]) {
-        data.addRow([timestamp, null, temperature_f, null]);
+        parsedData.push([timestamp, null, temperature_f, null]);
       } else if (name == columns[2]) {
-        data.addRow([timestamp, null, null, temperature_f]);
+        parsedData.push([timestamp, null, null, temperature_f]);
       } else {
         console.log(log);
       }
     }
+    data.addRows(parsedData);
   
     var options = {
       hAxis: {
