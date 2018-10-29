@@ -3,3 +3,4 @@ data/*
 env/*
 .firebase/*
 .firebaserc
+functions/node_modules/*
