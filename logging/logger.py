@@ -14,8 +14,7 @@ def parse_therm(name, content, seconds_since_epoch):
 
   _, temp = lines[1].split('t=')
   celsius = int(temp)/1000.0
-  to_f = lambda c: (c * 9.0/5) + 32
-  return ','.join([str_time, name, 'OK', '%2.3f' % celsius, '%2.3f' % to_f(celsius)])
+  return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
 def main(thermostat_files, poll_every_n_seconds, thermostat_names, temperature_log):

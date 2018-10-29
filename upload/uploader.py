@@ -38,7 +38,7 @@ with open(log_file, 'r') as log:
     log_line = log.readline()
     if not log_line:
       break
-    timestamp_str, therm_name, status, celsius, _ = log_line.split(',')
+    timestamp_str, therm_name, status, celsius = log_line.split(',')
     timestamp = datetime.fromtimestamp(int(timestamp_str), tz=pytz.UTC)
     if timestamp <= latest_entry_timestamp:
       continue
