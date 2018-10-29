@@ -18,9 +18,9 @@
       var result = null;
       fs.settings({timestampsInSnapshots: true});
       fs.collection('ui').doc('data').get().then((doc) => {
-	 gzipped_result = doc.data().gzipped;
-	 json_result = JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
-	 drawData(json_result);
+         gzipped_result = doc.data().gzipped;
+         json_result = JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
+         drawData(json_result);
       });
     </script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
