@@ -34,27 +34,37 @@ with open(log_file, 'r') as log:
   batch = db.batch()
   batch_count = 0
   commit_count = 0
+  line_count = 0
   while True:
     log_line = log.readline()
+    line_count = line_count + 1
     if not log_line:
       break
-    timestamp_str, therm_name, status, celsius = log_line.split(',')
-    timestamp = datetime.fromtimestamp(int(timestamp_str), tz=pytz.UTC)
-    if timestamp <= latest_entry_timestamp:
-      continue
-    new_logentry_ref = logentries.document()
-    batch.set(new_logentry_ref, {
-        'timestamp': timestamp,
-        'thermometer_name': _THERM_NAME[therm_name],
-        'status': status,
-        'temperature_celsius': float(celsius),
-    })
-    batch_count = batch_count + 1
-    if batch_count == _BATCH_SIZE:
-      batch_count = 0
-      batch.commit()
-      batch = db.batch()
-      commit_count = commit_count + 1
-  batch.commit()
-  print('New latest entry: %s' % timestamp)
-  print('Added %d entries.' % ((commit_count * _BATCH_SIZE) + batch_count))
+    try:
+      timestamp_str, therm_name, status, celsius = log_line.split(',')
+      timestamp = datetime.fromtimestamp(int(timestamp_str), tz=pytz.UTC)
+      if timestamp <= latest_entry_timestamp:
+        continue
+      new_logentry_ref = logentries.document()
+      batch.set(new_logentry_ref, {
+          'timestamp': timestamp,
+          'thermometer_name': _THERM_NAME[therm_name],
+          'status': status,
+          'temperature_celsius': float(celsius),
+      })
+      batch_count = batch_count + 1
+      if batch_count == _BATCH_SIZE:
+        batch_count = 0
+        batch.commit()
+        batch = db.batch()
+        commit_count = commit_count + 1
+    except:
+      print('Error on line: %d' % line_count, file=sys.stderr)
+      raise
+
+batch.commit()
+print('New latest entry: %s' % timestamp)
+print('Added %d entries.' % ((commit_count * _BATCH_SIZE) + batch_count))
+
+# There is a firebase function that is trigged on writes to /ui/upload.last_upload
+db.document(u'ui/upload').set({u'last_upload': datetime.now()})
