@@ -10,15 +10,15 @@
 # Each one will have the unique serial number so you may want to plug one in at
 # a time, look at what file is created, and label the sensor!
 
-ls -l /sys/bus/w1/devices/28-*/w1_slave
-
-
+ls /sys/bus/w1/devices/28-*/w1_slave
+ 
 for i in "$@"
 do
 case $i in
  -a|--all)
  PRINT_TEMPS='YES'
  shift
+ break;;
 esac
 done
 
