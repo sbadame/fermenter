@@ -25,9 +25,7 @@ def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostats):
     except KeyboardInterrupt:
       sys.exit(0)
     for fname, fcontents in contents:
-      name = fname
-      if thermostat in thermostats:
-        name = thermostat['name']
+      name = thermostats[fname]['name']
       print(parse_therm(name, fcontents, time.time()), file=temperature_log, flush=True)
     try:
       time.sleep(poll_every_n_seconds)
@@ -45,9 +43,10 @@ if __name__ == "__main__":
 
   if len(sys.argv) > 1:
     out = open(sys.argv[1], 'a')
-    print('# %s, %s' % (files, config), file=out)
+    print('# %s, %s' % (files, config), file=out, flush=True)
   else:
     out = sys.stdout
-    print(files, config)
+
+  print(files, config, flush=True)
 
   main(files, out, **config)
