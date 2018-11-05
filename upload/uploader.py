@@ -40,9 +40,9 @@ with open(log_file, 'r') as log:
     line_count = line_count + 1
     if not log_line: # Could be a blank line, could be EOF... friggen python.
       break
-    if log_line.strip().startswith('#'):
-      continue
     try:
+      if log_line.strip().startswith('#'):
+        continue
       timestamp_str, therm_name, status, celsius = log_line.split(',')
       timestamp = datetime.fromtimestamp(int(timestamp_str), tz=pytz.UTC)
       if timestamp <= latest_entry_timestamp:
@@ -67,6 +67,7 @@ with open(log_file, 'r') as log:
 batch.commit()
 print('New latest entry: %s' % timestamp)
 print('Added %d entries.' % ((commit_count * _BATCH_SIZE) + batch_count))
+print('Parsed %d lines.' % line_count)
 
 # There is a firebase function that is trigged on writes to /ui/upload.last_upload
 db.document(u'ui/upload').set({u'last_upload': datetime.now()})
