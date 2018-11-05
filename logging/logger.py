@@ -17,7 +17,7 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermostat_files, poll_every_n_seconds, thermostat_names, temperature_log):
+def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostat_names):
   while True:
     try:
       contents = [
@@ -38,20 +38,16 @@ def main(thermostat_files, poll_every_n_seconds, thermostat_names, temperature_l
 if __name__ == "__main__":
   files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
 
-  if len(sys.argv) > 1:
-    out = open(sys.argv[1], 'a')
-  else:
-    out = sys.stdout
-
   try:
     config = json.loads(open('data/config.json', 'r').read())
   except FileNotFoundError:
     config = {}
 
-  if 'poll_every_n_seconds' not in config:
-    config['poll_every_n_seconds'] = 30
+  if len(sys.argv) > 1:
+    out = open(sys.argv[1], 'a')
+    print('# %s, %s' % (files, config), file=out)
+  else:
+    out = sys.stdout
+    print(files, config)
 
-  config['temperature_log'] = out
-
-  print(files, config)
-  main(files, **config)
+  main(files, out, **config)

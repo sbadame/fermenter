@@ -38,8 +38,8 @@ with open(log_file, 'r') as log:
   while True:
     log_line = log.readline()
     line_count = line_count + 1
-    if not log_line:
-      break
+    if not log_line or log_line.strip().startswith('#'):
+      continue
     try:
       timestamp_str, therm_name, status, celsius = log_line.split(',')
       timestamp = datetime.fromtimestamp(int(timestamp_str), tz=pytz.UTC)
