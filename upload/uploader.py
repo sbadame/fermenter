@@ -38,7 +38,9 @@ with open(log_file, 'r') as log:
   while True:
     log_line = log.readline()
     line_count = line_count + 1
-    if not log_line or log_line.strip().startswith('#'):
+    if not log_line: # Could be a blank line, could be EOF... friggen python.
+      break
+    if log_line.strip().startswith('#'):
       continue
     try:
       timestamp_str, therm_name, status, celsius = log_line.split(',')
@@ -59,7 +61,7 @@ with open(log_file, 'r') as log:
         batch = db.batch()
         commit_count = commit_count + 1
     except:
-      print('Error on line: %d' % line_count, file=sys.stderr)
+      print('Error on line number %d: "%s"' % (line_count, log_line), file=sys.stderr)
       raise
 
 batch.commit()
