@@ -17,7 +17,7 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostat_names):
+def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostats):
   while True:
     try:
       contents = [
@@ -26,8 +26,8 @@ def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostat_nam
       sys.exit(0)
     for fname, fcontents in contents:
       name = fname
-      if fname in thermostat_names:
-        name = thermostat_names[fname]
+      if thermostat in thermostats:
+        name = thermostat['name']
       print(parse_therm(name, fcontents, time.time()), file=temperature_log, flush=True)
     try:
       time.sleep(poll_every_n_seconds)
