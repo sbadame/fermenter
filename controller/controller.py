@@ -3,6 +3,7 @@ import json
 import subprocess
 import sys
 import time
+import fcntl
 
 from collections import namedtuple
 
@@ -15,6 +16,12 @@ _gpio = lambda args: subprocess.call(['/usr/bin/gpio'] + args)
 _INIT = lambda: _gpio('mode', _PIN, 'out')
 _HIGH = lambda: _gpio('write', _PIN, '1')
 _LOW = lambda: _gpio('write', _PIN, '0')
+
+
+def read_with_lock(file_path):
+  with open(file_path, 'r') as fd:
+    fcntl.lockf(fd, fcntl.LOCK_SH)
+    return fd.read()
 
 def read(file_path):
   with open(file_path, 'r') as f:
