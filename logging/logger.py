@@ -36,10 +36,7 @@ def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostats):
 if __name__ == "__main__":
   files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
 
-  try:
-    config = json.loads(open('data/config.json', 'r').read())
-  except FileNotFoundError:
-    config = {}
+  config = json.loads(open('data/config.json', 'r').read())
 
   if len(sys.argv) > 1:
     out = open(sys.argv[1], 'a')
