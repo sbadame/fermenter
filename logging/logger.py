@@ -24,7 +24,7 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermostat_files, temperature_log, realtime_log, poll_every_n_seconds, thermostats):
+def main(thermostat_files, temperature_log, realtime_log, read_temps_every_n_seconds, thermostats):
   while True:
     try:
       contents = [
@@ -39,7 +39,7 @@ def main(thermostat_files, temperature_log, realtime_log, poll_every_n_seconds, 
     print(entry, file=temperature_log, flush=True)
     update_file(realtime_log, entry)
     try:
-      time.sleep(poll_every_n_seconds)
+      time.sleep(read_temps_every_n_seconds)
     except KeyboardInterrupt:
       sys.exit(0)
 
