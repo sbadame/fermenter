@@ -2,6 +2,13 @@ import glob
 import sys
 import time
 import json
+import fcntl
+
+
+def update_file(realtime_log, content):
+  with open(realtime_log, 'w') as fd:
+    fcntl.lockf(fd, fcntl.LOCK_EX)
+    fd.write(content)
 
 
 def parse_therm(name, content, seconds_since_epoch):
@@ -17,16 +24,20 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostats):
+def main(thermostat_files, temperature_log, realtime_log, poll_every_n_seconds, thermostats):
   while True:
     try:
       contents = [
         (f, open(f, 'r').read()) for f in thermostat_files]
     except KeyboardInterrupt:
       sys.exit(0)
+    entries = []
     for fname, fcontents in contents:
       name = thermostats[fname]['name']
-      print(parse_therm(name, fcontents, time.time()), file=temperature_log, flush=True)
+      entries.append(parse_therm(name, fcontents, time.time()))
+    entry = '\n'.join(entries)
+    print(entry, file=temperature_log, flush=True)
+    update_file(realtime_log, entry)
     try:
       time.sleep(poll_every_n_seconds)
     except KeyboardInterrupt:
@@ -36,10 +47,7 @@ def main(thermostat_files, temperature_log, poll_every_n_seconds, thermostats):
 if __name__ == "__main__":
   files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
 
-  try:
-    config = json.loads(open('data/config.json', 'r').read())
-  except FileNotFoundError:
-    config = {}
+  config = json.loads(open('data/config.json', 'r').read())
 
   if len(sys.argv) > 1:
     out = open(sys.argv[1], 'a')
