@@ -63,6 +63,7 @@ def _main(state_file):
     time.sleep(30)  
 
 if __name__ == "__main__":
-  state_file = sys.argv[1]
+  with open(sys.argv[1], 'r') as fd:
+    config = json.loads(fd.read())
   _INIT()
-  _main(state_file)
+  _main(config.controller_state)
