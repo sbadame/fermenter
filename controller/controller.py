@@ -7,15 +7,17 @@ import fcntl
 
 from collections import namedtuple
 
-State = namedtuple(
-  'State', 'current_temp_c, desired_temp_c, fridge')
+State = namedtuple('State', 'state')
+_UNINITIALIZED = 'uninitialized'
+_COOLING = 'cooling'
+_OFF = 'off'
 
 _PIN = 'GPIO. 0'
 
 _gpio = lambda args: subprocess.call(['/usr/bin/gpio'] + args)
-_INIT = lambda: _gpio('mode', _PIN, 'out')
-_HIGH = lambda: _gpio('write', _PIN, '1')
-_LOW = lambda: _gpio('write', _PIN, '0')
+_INIT = lambda: _gpio(['mode', _PIN, 'out'])
+_HIGH = lambda: _gpio(['write', _PIN, '1'])
+_LOW = lambda: _gpio(['write', _PIN, '0'])
 
 
 def read_with_lock(file_path):
@@ -23,47 +25,69 @@ def read_with_lock(file_path):
     fcntl.lockf(fd, fcntl.LOCK_SH)
     return fd.read()
 
-def read(file_path):
-  with open(file_path, 'r') as f:
-    return State(**json.loads(f.read()))
+def read_temp(file_path, monitor_thermometer):
+  content = read_with_lock(file_path)
+  for line in content.split('\n'):
+    timestamp, name, status, temp = line.split(',')
+    if name == monitor_thermometer:
+      if status != 'OK':
+        raise Exception('Thermometer is not OK. Was: %s' % (status))
+      return float(temp)
+  raise Exception('%s was not in the list thermometers.' % (monitor_thermometer))
+
+
+def read_state(file_path):
+  try:
+    with open(file_path, 'r') as f:
+      return State(**json.loads(f.read()))
+  except FileNotFoundError:
+      return State(_UNINITIALIZED)
 
 def write(file_path, state):
   with open(file_path, 'w') as f:
     f.write(json.dumps(state._asdict()))
 
-def log(log_file, msg):
-  with open(log_file, 'a') as f:
-    f.write('%.0f,%s\n' % (time.time(), msg))
-
-def _cool(state, state_file, log_file):
+def _cool(state_file):
   _HIGH()
-  write(state_file, s._replace(fridge='COOLING'))
-  log(log_file, 'COOLING')
+  write(state_file, State(_COOLING))
 
-def _heat(state, state_file, log_file):
+def _off(state_file):
   _LOW()
-  write(state_file, s._replace(fridge='HEATING'))
-  log(log_file, 'HEATING')
+  write(state_file, State(_OFF))
 
+def decide(realtime_log, monitor_thermometer, controller_state, desired, threshold):
+  temp = read_temp(realtime_log, monitor_thermometer)
+  s = read_state(controller_state)
 
-def decide(state_file, log_file):
-  s = read(state_file)
-  if abs(s.current_temp_c - s.desired_temp_c) < 3:
-    # If we're within 3 degrees of desired, just pass
-  elif s.current_temp_c > s.desired_temp_c:
-    _cool(s, log_file)
-  elif s.current_temp_c < s.desired_temp_c:
-    _heat(s, log_file)
+  if s.state == _UNINITIALIZED:
+    if temp < desired:
+      _off(controller_state)
+    else:
+      _cool(controller_state)
+  elif s.state == _OFF:
+    if temp > desired + threshold:
+      _cool(controller_state)
+  elif s.state == _COOLING:
+    if temp < desired - threshold:
+      _off(controller_state)
   else:
     raise Exception('Unhandled state: %s' % s)
 
-def _main(state_file):
+def _main(poll_seconds, *args):
   while True:
-    decide()
-    time.sleep(30)  
+    decide(*args)
+    time.sleep(poll_seconds)
 
 if __name__ == "__main__":
   with open(sys.argv[1], 'r') as fd:
     config = json.loads(fd.read())
+  args = [
+    config['control_every_n_seconds'],
+    config['realtime_log'],
+    config['monitor_thermometer'],
+    config['controller_state'],
+    config['desired_temp_celsius'],
+    config['threshold_degrees_celsius'],
+  ]
   _INIT()
-  _main(config.controller_state)
+  _main(*args)
