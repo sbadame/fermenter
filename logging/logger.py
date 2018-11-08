@@ -47,10 +47,10 @@ def main(thermometer_files, temperature_log, realtime_log, read_temps_every_n_se
 if __name__ == "__main__":
   files = glob.glob('/sys/bus/w1/devices/28-*/w1_slave')
 
-  config = json.loads(open('data/config.json', 'r').read())
+  config = json.loads(open(sys.argv[1], 'r').read())
 
-  if len(sys.argv) > 1:
-    out = open(sys.argv[1], 'a')
+  if len(sys.argv) > 2:
+    out = open(sys.argv[2], 'a')
     print('# %s, %s' % (files, config), file=out, flush=True)
   else:
     out = sys.stdout
