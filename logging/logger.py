@@ -24,16 +24,16 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermostat_files, temperature_log, realtime_log, read_temps_every_n_seconds, thermostats):
+def main(thermometer_files, temperature_log, realtime_log, read_temps_every_n_seconds, thermometers):
   while True:
     try:
       contents = [
-        (f, open(f, 'r').read()) for f in thermostat_files]
+        (f, open(f, 'r').read()) for f in thermometer_files]
     except KeyboardInterrupt:
       sys.exit(0)
     entries = []
     for fname, fcontents in contents:
-      name = thermostats[fname]['name']
+      name = thermometers[fname]['name']
       entries.append(parse_therm(name, fcontents, time.time()))
     entry = '\n'.join(entries)
     print(entry, file=temperature_log, flush=True)
