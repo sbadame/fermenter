@@ -24,7 +24,7 @@ def parse_therm(name, content, seconds_since_epoch):
   return ','.join([str_time, name, 'OK', '%2.1f' % celsius])
 
 
-def main(thermometer_files, temperature_log, realtime_log, read_temps_every_n_seconds, thermometers):
+def main(thermometer_files, temperature_log, realtime_log, read_temps_every_n_seconds, thermometers, **kwargs):
   while True:
     try:
       contents = [
