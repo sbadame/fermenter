@@ -1,9 +1,16 @@
 <html>
   <head>
     <script src="https://rawgit.com/nodeca/pako/master/dist/pako.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.css" />
+
     <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/5.5.5/firebase-firestore.js"></script>
+
     <script>
+      "use strict";
+
       // Initialize Firebase
       var config = {
         apiKey: "AIzaSyD7CFADGoS9hi_gnJofB-IqygN8050jtW0",
@@ -18,70 +25,87 @@
       var result = null;
       fs.settings({timestampsInSnapshots: true});
       fs.collection('ui').doc('data').get().then((doc) => {
-         gzipped_result = doc.data().gzipped;
-         json_result = JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
-         drawData(json_result);
+         const gzipped_result = doc.data().gzipped;
+         const json_result = JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
+	 drawData(json_result);
+         document.getElementById('progress').remove();
       });
-    </script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script>
-"use strict";
 
-function drawData(logs) {
-  var OK = 'OK';
-  var ERROR = 'ERROR';
-  var blue = 'In water';
-  var white = 'Garage';
-  var yellow = 'In fridge';
-  var columns = ['In water','Garage','In fridge'];
-  // https://developers.google.com/chart/interactive/docs/gallery/linechart
-  google.charts.load('current', {packages: ['corechart', 'line']});
-  google.charts.setOnLoadCallback(drawCurveTypes);
-  
-  function drawCurveTypes() {
-    var data = new google.visualization.DataTable();
-    data.addColumn('datetime', 'Time');
-    for (var col of columns) {
-      data.addColumn('number', col);
-    }
-    var parsedData = [];
-    for (var log of logs) {
-      // Time is logged as seconds since epoch,
-      // but new Date() wants milliseconds.
-      var timestamp = new Date(log[0] * 1000);
-      var name = log[1]
-      var temperature_f = log[3];
-      if (name == columns[0]) {
-        parsedData.push([timestamp, temperature_f, null, null]);
-      } else if (name == columns[1]) {
-        parsedData.push([timestamp, null, temperature_f, null]);
-      } else if (name == columns[2]) {
-        parsedData.push([timestamp, null, null, temperature_f]);
-      } else {
-        console.log(log);
+      function drawData(logs) {
+        /**
+         * Arggg, careful with this loop. Lots of rows and performance matters.
+         *
+         * The following loop transforms `logs` into what dygraph understands.
+         * This mostly involves grouping entries by timestamp, but I got bit here,
+         * so I'm leaving notes for future me.
+         *
+         * logs (The input):
+         *  - Times are in ascending order
+         *  - There are multiple entries per time.
+         *  - You're not gaurenteed to have all readings for any given time.
+         *  - Apparently there are dupes?!?!
+         *  [1540095166, "In fridge", "OK", 34.5866]
+         *  [1540095166, "Garage", "OK", 68]
+         *  [1540095166, "In water", "OK", 32.5616]
+         *  [1540095198, "In water", "OK", 32.675]
+         *  [1540095198, "In water", "OK", 32.675]
+         *  [1540095198, "Garage", "OK", 68]
+         *
+         * graph_data (The output):
+         *  - Seconds since epoch is converted into a JS Date() object.
+         *  - One entry per timestamp.
+         *  - Not shown here: undefined/null can be used for missing temp entries.
+         *  - The format for each entry is: [x series,   y1 series, y2 series,   y3 series]
+         *                                  [    time, 'In  water',  'Garage', 'In fridge']
+         *  [Sun Oct 21 2018 00:12:46 GMT-0400 (Eastern Daylight Time), 32.5616, 68, 34.5866]
+         *  [Sun Oct 21 2018 00:13:18 GMT-0400 (Eastern Daylight Time), 32.675, 68, 33.575]
+         *  [Wed Nov 14 2018 21:29:42 GMT-0500 (Eastern Standard Time), 53.96, 61.16, 56.120000000000005]
+         *
+         * The output array to dygraph must have the earliest date first, otherwise
+         * no x labels are shown and the graph looks ugly.
+         *
+         * So here is what I've tried (measured with performance.now()):
+         *  shift:              22701ms
+         *  reverse() + pop():     93ms
+         *  pop (BROKEN):          85ms
+         *  a for loop:            70ms
+         *
+         * The *real* fix is to do all of this processing server-side.
+         */
+        // Log format constants
+        const TIMESTAMP = 0;
+        const THERMOMETER = 1;
+        const TEMP = 3;
+
+        const graph_data = [];
+        let prev = logs[TIMESTAMP];
+        let entry = {};
+        entry[prev[THERMOMETER]] = prev[TEMP];
+        for (let i = 1; i < logs.length; i++) {
+          let curr = logs[i];
+          if (prev[TIMESTAMP] !== curr[TIMESTAMP]) {
+            // Convert seconds to millis for javascript.
+            graph_data.push([new Date(prev[TIMESTAMP] * 1000), entry['In water'], entry['Garage'], entry['In fridge']]);
+            entry = {};
+          }
+          entry[curr[THERMOMETER]] = curr[TEMP];
+          prev = curr;
+        }
+
+        new Dygraph(document.getElementById("chart"), graph_data,
+          {
+            labels: ['time', 'In water', 'Garage', 'In fridge'],
+            ylabel: 'Temperature (F)',
+            legend: 'always',
+            showRoller: true,
+            rollPeriod: 14,
+            strokeWidth: 1,
+          });
       }
-    }
-    data.addRows(parsedData);
-  
-    var options = {
-      hAxis: {
-        title: 'Time'
-      },
-      vAxis: {
-        title: 'Temperature \u2109'
-      },
-      series: {
-        1: {curveType: 'function'}
-      }
-    };
-  
-    var chart = new google.visualization.LineChart(document.getElementById('chart_div'));
-    chart.draw(data, options);
-  } 
-}
     </script>
   </head>
   <body>
-    <div id="chart_div"></div>
+    <div id="progress">Loading..</div>
+    <div id='chart' style="width:100%"></div>
   </body>
 </html>
