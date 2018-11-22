@@ -7,6 +7,9 @@ import fcntl
 
 def update_file(realtime_log, content):
   with open(realtime_log, 'w') as fd:
+    # Don't be fooled, python is actually using (confirmed by strace):
+    # fcntl64({l_type=F_WRLCK, l_whence=SEEK_SET, l_start=0, l_len=0})
+    # docs: https://docs.python.org/3.5/library/fcntl.html#fcntl.lockf
     fcntl.lockf(fd, fcntl.LOCK_EX)
     fd.write(content)
 
