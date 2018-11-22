@@ -31,6 +31,19 @@
          document.getElementById('progress').remove();
       });
 
+      /**
+       * Display the data for the selected time.
+       */
+      function logPoints(points) {
+	points.sort((a, b) => a.name < b.name);
+	const datetime = new Date(points[0].xval).toLocaleString(undefined, {hour12: false, day: '2-digit', month:'short', year: 'numeric'});
+	let text = datetime;
+	for (let point of points) {
+          text += ` ${point.name}: ${point.yval.toFixed(1)},`
+	}
+	document.getElementById('logger').innerText = text;
+      }
+
       function drawData(logs) {
         /**
          * Arggg, careful with this loop. Lots of rows and performance matters.
@@ -100,14 +113,16 @@
             showRoller: true,
             rollPeriod: 14,
             strokeWidth: 1,
-	    colors: ["rgb(57, 106, 177)", "rgb(218, 124, 48)", "rgb(62,150,81)"]
+	    colors: ["rgb(57, 106, 177)", "rgb(218, 124, 48)", "rgb(62,150,81)"],
+	    clickCallback: (e, x, points) => logPoints(points),
           });
       }
     </script>
   </head>
   <body>
     <div id="progress">Loading..</div>
-    <div id='chart' style="width:100%"></div>
+    <div id="chart" style="width:100%"></div>
+    <div><span>Selected: </span><span id="logger">Nothing Selected.</span></div>
     <p>Zoom: click-drag</p>
     <p>Pan: shift-click-drag</p>
     <p>Restore zoom level: double-click</p>
