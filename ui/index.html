@@ -36,7 +36,7 @@
        */
       function logPoints(points) {
 	points.sort((a, b) => a.name < b.name);
-	const datetime = new Date(points[0].xval).toLocaleString(undefined, {hour12: false, day: '2-digit', month:'short', year: 'numeric'});
+	const datetime = new Date(points[0].xval).toLocaleString(undefined, {hour12: false, day: '2-digit', month:'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'});
 	let text = datetime;
 	for (let point of points) {
           text += ` ${point.name}: ${point.yval.toFixed(1)},`
