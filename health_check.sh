@@ -1,6 +1,6 @@
 #/bin/bash
 
-systemctl --user status fermenter-logging
+systemctl --user status 'fermenter-*'
 cat data/config.json | jq
 ./list_therms.sh --all
 tail ~/logs/upload.sh.log
