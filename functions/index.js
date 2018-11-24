@@ -1,7 +1,8 @@
 const runtimeOpts = {
-  timeoutSeconds: 2 * 60,
+  timeoutSeconds: 5 * 60,
   memory: '1GB'
 }
+const PAGE_SIZE = 100000;
 
 const functions = require('firebase-functions');
 const pako = require('pako');
@@ -21,10 +22,27 @@ function write(compressedLogs) {
   return fs.collection('ui').doc('data').update({'gzipped': compressedLogs});
 }
 
-exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite((change, context) => {
-  return fs.collection("logentries").orderBy('timestamp').get().then((querySnapshot) => {
+function paginate(base_query, limit, last_seen, collector) {
+  if (collector === undefined) {
+    collector = [];
+  }
+  if (last_seen !== undefined) {
+    base_query = base_query.startAfter(last_seen);
+  }
+  return base_query.limit(limit).get().then(querySnapshot => {
+    if (querySnapshot.empty) {
+      return Promise.resolve(collector);
+    }
+    querySnapshot.forEach(e => collector.push(e));
+    const last = collector[collector.length - 1];
+    return paginate(base_query, limit, last, collector);
+  });
+}
+
+exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite(() => {
+  return paginate(fs.collection("logentries").orderBy('timestamp'), PAGE_SIZE).then(results => {
     var fireLogs = [];
-    querySnapshot.forEach((doc) => {
+    results.forEach(doc => {
       var data = doc.data();
       var f = (data.temperature_celsius * (9.0/5.0)) + 32;
       fireLogs.push([data.timestamp.seconds, data.thermometer_name, data.status, f]);
