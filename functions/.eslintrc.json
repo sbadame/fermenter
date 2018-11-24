@@ -18,10 +18,10 @@
     "no-debugger": "off",
 
     // Removed rule "disallow unused variables" from recommended eslint rules
-    "no-unused-vars": "on",
+    "no-unused-vars": 2,
 
     // Removed rule "disallow mixed spaces and tabs for indentation" from recommended eslint rules
-    "no-mixed-spaces-and-tabs": "on",
+    "no-mixed-spaces-and-tabs": 2,
 
     // Removed rule "disallow the use of undeclared variables unless mentioned in /*global */ comments" from recommended eslint rules
     "no-undef": "off",
