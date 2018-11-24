@@ -22,25 +22,25 @@ function write(compressedLogs) {
   return fs.collection('ui').doc('data').update({'gzipped': compressedLogs});
 }
 
-function paginate(base_query, limit, last_seen, collector) {
+function paginate(base_query, last_seen, collector) {
   if (collector === undefined) {
     collector = [];
   }
   if (last_seen !== undefined) {
     base_query = base_query.startAfter(last_seen);
   }
-  return base_query.limit(limit).get().then(querySnapshot => {
+  return base_query.limit(PAGE_SIZE).get().then(querySnapshot => {
     if (querySnapshot.empty) {
       return Promise.resolve(collector);
     }
     querySnapshot.forEach(e => collector.push(e));
     const last = collector[collector.length - 1];
-    return paginate(base_query, limit, last, collector);
+    return paginate(base_query, last, collector);
   });
 }
 
 exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite(() => {
-  return paginate(fs.collection("logentries").orderBy('timestamp'), PAGE_SIZE).then(results => {
+  return paginate(fs.collection("logentries").orderBy('timestamp')).then(results => {
     var fireLogs = [];
     results.forEach(doc => {
       var data = doc.data();
