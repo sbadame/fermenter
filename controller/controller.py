@@ -7,7 +7,7 @@ import fcntl
 
 from collections import namedtuple
 
-State = namedtuple('State', 'state')
+State = namedtuple('State', 'state, timestamp')
 _UNINITIALIZED = 'uninitialized'
 _COOLING = 'cooling'
 _OFF = 'off'
@@ -49,31 +49,38 @@ def read_temp(file_path, monitor_thermometer):
 def read_state(file_path):
   try:
     with open(file_path, 'r') as f:
-      return State(**json.loads(f.read()))
+      kwargs = json.loads(f.read())
+      if 'timestamp' not in kwargs:
+        kwargs['timestamp'] = int(time.time())
+      return State(**kwargs)
   except FileNotFoundError:
-      return State(_UNINITIALIZED)
+      return State(_UNINITIALIZED, int(time.time()))
 
 class Controller(object):
 
-  def __init__(self, gpio, state_file):
+  def __init__(self, gpio, state_file, log_file):
     self._gpio = gpio
     self._state_file = state_file
+    self._log_file = log_file
 
   def _write(self, state):
     with open(self._state_file, 'w') as f:
       f.write(json.dumps(state._asdict()))
+    with open(self._log_file, 'a') as f:
+      f.write('%d,%s\n' % (state.timestamp, state.state))
+
 
   def cool(self):
     self._gpio.high()
-    self._write(State(_COOLING))
+    self._write(State(_COOLING, int(time.time())))
 
   def off(self):
     self._gpio.low()
-    self._write(State(_OFF))
+    self._write(State(_OFF, int(time.time())))
 
 
-def decide(gpio, realtime_log, monitor_thermometer, controller_state, desired, threshold):
-  controller = Controller(gpio, controller_state)
+def decide(gpio, realtime_log, monitor_thermometer, controller_state, controller_log, desired, threshold):
+  controller = Controller(gpio, controller_state, controller_log)
   temp = read_temp(realtime_log, monitor_thermometer)
 
   s = read_state(controller_state)
@@ -112,6 +119,7 @@ if __name__ == "__main__":
     config['realtime_log'],
     config['monitor_thermometer'],
     config['controller_state'],
+    config['controller_state_log'],
     config['desired_temp_celsius'],
     config['threshold_degrees_celsius'],
   ]
