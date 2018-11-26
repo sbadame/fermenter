@@ -115,8 +115,18 @@
             showRoller: true,
             rollPeriod: 14,
             strokeWidth: 1,
-            colors: ["rgb(57, 106, 177)", "rgb(218, 124, 48)", "rgb(62,150,81)"],
+            colors: ['rgb(57, 106, 177)', 'rgb(218, 124, 48)', 'rgb(62,150,81)'],
             clickCallback: (e, x, points) => logPoints(points),
+            underlayCallback: (canvas, area, graph) => {
+              const start = Date.parse('Nov 12, 2018, 00:24:07');
+              const end = Date.parse('Nov 13, 2018, 00:24:07');
+              const bottom_left = graph.toDomCoords(start, -20);
+              const bottom_right = graph.toDomCoords(end, +20);
+              const left = bottom_left[0];
+              const right = bottom_right[0];
+              canvas.fillStyle = 'rgba(102, 255, 255, 1.0)';
+              canvas.fillRect(left, area.y, right - left, area.h);
+            }
           });
       }
     </script>
