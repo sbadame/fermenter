@@ -29,7 +29,7 @@ function paginate(base_query, last_seen, collector) {
   if (last_seen !== undefined) {
     base_query = base_query.startAfter(last_seen);
   }
-  return base_query.limit(PAGE_SIZE).get().then(querySnapshot => {
+  return base_query.get().then(querySnapshot => {
     if (querySnapshot.empty) {
       return Promise.resolve(collector);
     }
@@ -40,7 +40,8 @@ function paginate(base_query, last_seen, collector) {
 }
 
 exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite(() => {
-  return paginate(fs.collection("logentries").orderBy('timestamp')).then(results => {
+  const query = fs.collection("logentries").orderBy('timestamp').limit(PAGE_SIZE);
+  return paginate(query).then(results => {
     var fireLogs = [];
     results.forEach(doc => {
       var data = doc.data();
