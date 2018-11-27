@@ -143,7 +143,9 @@
                 highlight(new Date(prev.timestamp.seconds * 1000), new Date(log.timestamp.seconds * 1000), canvas, area, graph);
                 prev = log;
               }
-              highlight(new Date(prev.timestamp.seconds * 1000), new Date(), canvas, area, graph);
+              if (prev.state === 'cooling') {
+                highlight(new Date(prev.timestamp.seconds * 1000), new Date(), canvas, area, graph);
+              }
             }
           });
       }
