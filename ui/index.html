@@ -140,7 +140,9 @@
                 if (log.state == prev.state) {
                   continue;
                 }
-                highlight(new Date(prev.timestamp.seconds * 1000), new Date(log.timestamp.seconds * 1000), canvas, area, graph);
+                if (prev.state == 'cooling') {
+                  highlight(new Date(prev.timestamp.seconds * 1000), new Date(log.timestamp.seconds * 1000), canvas, area, graph);
+                }
                 prev = log;
               }
               if (prev.state === 'cooling') {
@@ -151,6 +153,7 @@
       }
 
       function highlight(start, end, canvas, area, graph) {
+        console.log('highlight', start, end);
         const bottom_left = graph.toDomCoords(start, -20);
         const bottom_right = graph.toDomCoords(end, +20);
         const left = bottom_left[0];
