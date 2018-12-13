@@ -1,7 +1,5 @@
 <html>
   <head>
-    <script src="https://rawgit.com/nodeca/pako/master/dist/pako.js"></script>
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.css" />
 
@@ -26,10 +24,7 @@
       var fs = firebase.firestore();
       var result = null;
       fs.settings({timestampsInSnapshots: true});
-      const templog_entries = fs.collection('ui').doc('data').get().then((doc) => {
-         const gzipped_result = doc.data().gzipped;
-         return JSON.parse(pako.inflate(gzipped_result.toUint8Array(), {to: 'string'}));
-      });
+      const templog_entries = fetch('https://storage.googleapis.com/fermenter-220118.appspot.com/log.json').then(r => r.json());
       const controller_state = fs.collection('controller_logentries').orderBy('timestamp').get().then(results => {
         return results.docs.map(d => d.data());
       });
@@ -66,11 +61,11 @@
          *  - There are multiple entries per time.
          *  - You're not gaurenteed to have all readings for any given time.
          *  - Apparently there are dupes?!?!
-         *  [1540095166, "In fridge", "OK", 34.5866]
+         *  [1540095166, "Fridge", "OK", 34.5866]
          *  [1540095166, "Garage", "OK", 68]
-         *  [1540095166, "In water", "OK", 32.5616]
-         *  [1540095198, "In water", "OK", 32.675]
-         *  [1540095198, "In water", "OK", 32.675]
+         *  [1540095166, "Water", "OK", 32.5616]
+         *  [1540095198, "Water", "OK", 32.675]
+         *  [1540095198, "Water", "OK", 32.675]
          *  [1540095198, "Garage", "OK", 68]
          *
          * graph_data (The output):
@@ -78,7 +73,7 @@
          *  - One entry per timestamp.
          *  - Not shown here: undefined/null can be used for missing temp entries.
          *  - The format for each entry is: [x series,   y1 series, y2 series,   y3 series]
-         *                                  [    time, 'In  water',  'Garage', 'In fridge']
+         *                                  [    time, 'Water',  'Garage', 'Fridge']
          *  [Sun Oct 21 2018 00:12:46 GMT-0400 (Eastern Daylight Time), 32.5616, 68, 34.5866]
          *  [Sun Oct 21 2018 00:13:18 GMT-0400 (Eastern Daylight Time), 32.675, 68, 33.575]
          *  [Wed Nov 14 2018 21:29:42 GMT-0500 (Eastern Standard Time), 53.96, 61.16, 56.120000000000005]
@@ -107,7 +102,7 @@
           let curr = tempLogs[i];
           if (prev[TIMESTAMP] !== curr[TIMESTAMP]) {
             // Convert seconds to millis for javascript.
-            graph_data.push([new Date(prev[TIMESTAMP] * 1000), entry['In water'], entry['Garage'], entry['In fridge']]);
+            graph_data.push([new Date(prev[TIMESTAMP] * 1000), entry['Water'], entry['Garage'], entry['Fridge']]);
             entry = {};
           }
           entry[curr[THERMOMETER]] = curr[TEMP];
@@ -164,6 +159,7 @@
     </script>
   </head>
   <body>
+    <a href="https://storage.googleapis.com/fermenter-220118.appspot.com/log.json">Download log.</a>
     <div id="progress">Loading..</div>
     <div id="chart" style="width:100%"></div>
     <div><span>Selected: </span><span id="logger">Nothing Selected.</span></div>

@@ -3,9 +3,18 @@ const runtimeOpts = {
   memory: '1GB'
 }
 const PAGE_SIZE = 100000;
+const THERMS = {
+  'In water': 'Water',
+  'In fridge': 'Fridge',
+  'Garage': 'Garage'
+};
 
 const functions = require('firebase-functions');
-const pako = require('pako');
+const {Storage} = require('@google-cloud/storage');
+const storage = new Storage();
+const bucket = functions.config().gcs.bucket;
+const fileName = functions.config().gcs.filename;
+const gcsFile = storage.bucket(bucket).file(fileName);
 
 // Initialize the Firebase application with admin credentials
 const admin = require('firebase-admin');
@@ -13,14 +22,6 @@ admin.initializeApp();
 
 const fs = admin.firestore();
 fs.settings({timestampsInSnapshots: true});
-
-function compress(logs) {
-  return pako.deflate(JSON.stringify(logs));
-}
-
-function write(compressedLogs) {
-  return fs.collection('ui').doc('data').update({'gzipped': compressedLogs});
-}
 
 function paginate(base_query, last_seen, collector) {
   if (collector === undefined) {
@@ -46,9 +47,11 @@ exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/uplo
     results.forEach(doc => {
       var data = doc.data();
       var f = (data.temperature_celsius * (9.0/5.0)) + 32;
-      fireLogs.push([data.timestamp.seconds, data.thermometer_name, data.status, f]);
+      fireLogs.push([data.timestamp.seconds, THERMS[data.thermometer_name], data.status, f]);
     });
-    var compressedLogs = compress(fireLogs);
-    return write(compressedLogs);
+    const writer = gcsFile.createWriteStream({resumable: false});
+    writer.write(JSON.stringify(fireLogs));
+    writer.end();
+    return 0;
   });
 });

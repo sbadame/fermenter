@@ -12,7 +12,7 @@
   "dependencies": {
     "firebase-admin": "~6.0.0",
     "firebase-functions": "^2.0.3",
-    "pako": "^1.0.6"
+    "@google-cloud/storage": "2.3.0"
   },
   "devDependencies": {
     "eslint": "^4.12.0",
