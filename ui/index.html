@@ -3,35 +3,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dygraph/2.1.0/dygraph.css" />
 
-    <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/5.5.5/firebase-firestore.js"></script>
-
     <script>
       "use strict";
 
       var graph;
 
-      // Initialize Firebase
-      var config = {
-        apiKey: "AIzaSyD7CFADGoS9hi_gnJofB-IqygN8050jtW0",
-        authDomain: "fermenter-220118.firebaseapp.com",
-        databaseURL: "https://fermenter-220118.firebaseio.com",
-        projectId: "fermenter-220118",
-        storageBucket: "fermenter-220118.appspot.com",
-        messagingSenderId: "90102997315"
-      };
-      firebase.initializeApp(config);
-      var fs = firebase.firestore();
-      var result = null;
-      fs.settings({timestampsInSnapshots: true});
-      const templog_entries = fetch('https://storage.googleapis.com/fermenter-220118.appspot.com/log.json').then(r => r.json());
-      const controller_state = fs.collection('controller_logentries').orderBy('timestamp').get().then(results => {
-        return results.docs.map(d => d.data());
-      });
-      Promise.all([templog_entries, controller_state]).then(results => {
-         const tempLogs = results[0];
-         const controller_state = results[1];
-         drawData(tempLogs, controller_state);
+      fetch('https://storage.googleapis.com/fermenter-220118.appspot.com/log.json').then(r => r.json()).then(r => {
+         const {temp_logs, controller_state} = r;
+         drawData(temp_logs, controller_state);
          document.getElementById('progress').remove();
       });
       
@@ -136,19 +115,18 @@
                   continue;
                 }
                 if (prev.state == 'cooling') {
-                  highlight(new Date(prev.timestamp.seconds * 1000), new Date(log.timestamp.seconds * 1000), canvas, area, graph);
+                  highlight(new Date(prev.timestamp * 1000), new Date(log.timestamp * 1000), canvas, area, graph);
                 }
                 prev = log;
               }
               if (prev.state === 'cooling') {
-                highlight(new Date(prev.timestamp.seconds * 1000), new Date(), canvas, area, graph);
+                highlight(new Date(prev.timestamp * 1000), new Date(), canvas, area, graph);
               }
             }
           });
       }
 
       function highlight(start, end, canvas, area, graph) {
-        console.log('highlight', start, end);
         const bottom_left = graph.toDomCoords(start, -20);
         const bottom_right = graph.toDomCoords(end, +20);
         const left = bottom_left[0];
