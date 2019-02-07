@@ -6,3 +6,6 @@ env/*
 .firebase/*
 .firebaserc
 functions/node_modules/*
+firebase-debug.log
+__pycache__
+functions/.runtimeconfig.json

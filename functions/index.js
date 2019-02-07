@@ -3,9 +3,16 @@ const runtimeOpts = {
   memory: '1GB'
 }
 const PAGE_SIZE = 100000;
+const THERMS = {
+  'In water': 'Water',
+  'In fridge': 'Fridge',
+  'Garage': 'Garage'
+};
 
 const functions = require('firebase-functions');
-const pako = require('pako');
+const {Storage} = require('@google-cloud/storage');
+const storage = new Storage();
+const gcsFile = storage.bucket(JSON.parse(process.env.FIREBASE_CONFIG).storageBucket).file('log.json');
 
 // Initialize the Firebase application with admin credentials
 const admin = require('firebase-admin');
@@ -13,14 +20,6 @@ admin.initializeApp();
 
 const fs = admin.firestore();
 fs.settings({timestampsInSnapshots: true});
-
-function compress(logs) {
-  return pako.deflate(JSON.stringify(logs));
-}
-
-function write(compressedLogs) {
-  return fs.collection('ui').doc('data').update({'gzipped': compressedLogs});
-}
 
 function paginate(base_query, last_seen, collector) {
   if (collector === undefined) {
@@ -39,16 +38,35 @@ function paginate(base_query, last_seen, collector) {
   });
 }
 
-exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite(() => {
+function queryTempLogEntries() {
   const query = fs.collection("logentries").orderBy('timestamp').limit(PAGE_SIZE);
   return paginate(query).then(results => {
     var fireLogs = [];
     results.forEach(doc => {
       var data = doc.data();
       var f = (data.temperature_celsius * (9.0/5.0)) + 32;
-      fireLogs.push([data.timestamp.seconds, data.thermometer_name, data.status, f]);
+      fireLogs.push([data.timestamp.seconds, THERMS[data.thermometer_name], data.status, f]);
     });
-    var compressedLogs = compress(fireLogs);
-    return write(compressedLogs);
+    return fireLogs;
+  });
+}
+
+function queryControllerLogEntries() {
+  return fs.collection('controller_logentries').orderBy('timestamp').get().then(results => {
+    const entries = results.docs.map(d => d.data());
+    for (let entry of entries) {
+      entry['timestamp'] = entry['timestamp']['_seconds'];
+    }
+    return entries;
+  });
+}
+
+exports.updateCache = functions.runWith(runtimeOpts).firestore.document('ui/upload').onWrite(() => {
+  return Promise.all([queryTempLogEntries(), queryControllerLogEntries()]).then(results => {
+    const json = JSON.stringify({'temp_logs': results[0], 'controller_state': results[1]});
+    const writer = gcsFile.createWriteStream({resumable: false});
+    writer.write(json);
+    writer.end();
+    return 0;
   });
 });
