@@ -26,16 +26,16 @@ class FSM(object):
   def __init__(self, desc):
     states = defaultdict(State)
     for line in _split_n_strip(desc, "\n"):
-      if line.startswith("#"):
-        continue
-      elif "|" in line: # from -> to | <python condition>
-        transition, condition = _split_n_strip(line, "|")
-        start, end = _split_n_strip(transition, "->")
-        states[start].name = start
-        states[end].name = end
-        states[start].transitions += (condition, states[end]),
-      else:
+      if line.startswith("#"): continue
+      if "->" not in line or "|" not in line:
         raise Error("Invalid line: %s" % line)
+      # A -> B | <condition>
+      transition, condition = _split_n_strip(line, "|")
+      start, end = _split_n_strip(transition, "->")
+      states[start].name = start
+      states[end].name = end
+      states[start].transitions += (condition, states[end]),
+
     self.states = dict(states)
     self.current = states['uninitialized']
 
